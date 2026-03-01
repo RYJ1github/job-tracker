@@ -1,34 +1,64 @@
 # Job Tracker
 
-A clean, modern React job application tracker built with Vite and Tailwind CSS.
+Full-stack job application tracker with a React (Vite + Tailwind) frontend and Node.js Express backend.
 
-## Features
+## Project structure
 
-- **Add Job Form** - Add new job applications with company, position, status, and notes
-- **Job List** - View all your tracked applications
-- **Status Dropdown** - Update status: Applied, Interview, Offer, Rejected
-- **Delete Jobs** - Remove applications you no longer need to track
+```
+job-tracker/
+  frontend/          # React + Vite + Tailwind
+    src/
+  backend/           # Express API
+    server.js
+    jobs.json
+```
 
-## Getting Started
+## Setup
+
+Install all dependencies (root, backend, frontend):
 
 ```bash
-# Install dependencies
-npm install
+npm run install:all
+```
 
-# Start development server
+### Run from project root
+
+Start both backend and frontend at once:
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Or run separately in two terminals:
 
-## Build
+- Backend: `npm run dev:backend` (http://localhost:3001)
+- Frontend: `npm run dev:frontend` (http://localhost:5173)
+
+### Or run from each folder
 
 ```bash
-npm run build
+cd backend && npm install && npm run dev   # port 3001
+cd frontend && npm install && npm run dev # port 5173
 ```
 
-## Tech Stack
+API requests from the frontend are proxied from `/api` to the backend.
 
-- React 18
-- Vite 5
-- Tailwind CSS 3
+## API routes
+
+| Method | Route        | Description        |
+|--------|--------------|--------------------|
+| GET    | /jobs        | List all jobs      |
+| POST   | /jobs        | Create a job       |
+| PUT    | /jobs/:id    | Update a job       |
+| DELETE | /jobs/:id    | Delete a job       |
+
+Data is stored in `backend/jobs.json`.
+
+## Run both
+
+From the project root, in two terminals:
+
+1. `cd backend && npm install && npm run dev`
+2. `cd frontend && npm install && npm run dev`
+
+Then open http://localhost:5173

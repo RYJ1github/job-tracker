@@ -2,44 +2,71 @@ import { useState, useEffect, useCallback } from 'react'
 import JobForm from './components/JobForm'
 import JobList from './components/JobList'
 import StatsCards from './components/StatsCards'
+import * as api from './api'
 
 const STATUS_OPTIONS = ['Applied', 'Interview', 'Offer', 'Rejected']
-const STORAGE_KEY = 'job-tracker-jobs'
-
-function loadJobsFromStorage() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : []
-  } catch {
-    return []
-  }
-}
 
 function App() {
-  const [jobs, setJobs] = useState(loadJobsFromStorage)
+  const [jobs, setJobs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const loadJobs = useCallback(async () => {
+    try {
+      setError(null)
+      setLoading(true)
+      const data = await api.fetchJobs()
+      setJobs(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError(err.message || 'Failed to load jobs')
+      setJobs([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs))
-  }, [jobs])
+    loadJobs()
+  }, [loadJobs])
 
-  const addJob = useCallback((job) => {
-    setJobs((prev) => [...prev, { ...job, id: crypto.randomUUID() }])
+  const addJob = useCallback(async (job) => {
+    try {
+      const created = await api.createJob(job)
+      setJobs((prev) => [...prev, created])
+    } catch (err) {
+      setError(err.message || 'Failed to add job')
+    }
   }, [])
 
-  const updateJobStatus = useCallback((id, status) => {
-    setJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, status } : job))
-    )
+  const updateJobStatus = useCallback(async (id, status) => {
+    try {
+      const updated = await api.updateJob(id, { status })
+      setJobs((prev) =>
+        prev.map((j) => (j.id === id ? updated : j))
+      )
+    } catch (err) {
+      setError(err.message || 'Failed to update status')
+    }
   }, [])
 
-  const deleteJob = useCallback((id) => {
-    setJobs((prev) => prev.filter((job) => job.id !== id))
+  const deleteJob = useCallback(async (id) => {
+    try {
+      await api.deleteJob(id)
+      setJobs((prev) => prev.filter((j) => j.id !== id))
+    } catch (err) {
+      setError(err.message || 'Failed to delete job')
+    }
   }, [])
 
-  const updateJob = useCallback((id, updates) => {
-    setJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, ...updates } : job))
-    )
+  const updateJob = useCallback(async (id, updates) => {
+    try {
+      const updated = await api.updateJob(id, updates)
+      setJobs((prev) =>
+        prev.map((j) => (j.id === id ? updated : j))
+      )
+    } catch (err) {
+      setError(err.message || 'Failed to update job')
+    }
   }, [])
 
   return (
@@ -101,22 +128,37 @@ function App() {
 
             {/* Content */}
             <div className="p-4 md:p-8">
-              <StatsCards jobs={jobs} />
+              {error && (
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center justify-between">
+                  <span>{error}</span>
+                  <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300" aria-label="Dismiss">×</button>
+                </div>
+              )}
 
-              <div className="mt-8 grid gap-8 lg:grid-cols-3">
-                <div className="lg:col-span-1">
-                  <JobForm onAdd={addJob} statusOptions={STATUS_OPTIONS} />
+              {loading ? (
+                <div className="flex items-center justify-center py-24">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                 </div>
-                <div className="lg:col-span-2">
-                  <JobList
-                    jobs={jobs}
-                    statusOptions={STATUS_OPTIONS}
-                    onUpdateStatus={updateJobStatus}
-                    onUpdate={updateJob}
-                    onDelete={deleteJob}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <StatsCards jobs={jobs} />
+
+                  <div className="mt-8 grid gap-8 lg:grid-cols-3">
+                    <div className="lg:col-span-1">
+                      <JobForm onAdd={addJob} statusOptions={STATUS_OPTIONS} />
+                    </div>
+                    <div className="lg:col-span-2">
+                      <JobList
+                        jobs={jobs}
+                        statusOptions={STATUS_OPTIONS}
+                        onUpdateStatus={updateJobStatus}
+                        onUpdate={updateJob}
+                        onDelete={deleteJob}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </main>
